@@ -37,8 +37,6 @@ The `gcp-setup` plugin requires:
 3. **Execution** — Opens Chrome and walks through GCP Console step by step, taking screenshots to verify each action.
 4. **Manual handoffs** — Pauses for Google sign-in, billing confirmation, 2FA, and terms acceptance.
 
----
-
 ## About Studio N.O.P.E.
 
 Creative Solution Engineers using AI's infinite possibilities to help humans realise their dreams.
@@ -48,8 +46,6 @@ We're [@tijsluitse](https://github.com/tijsluitse) and [@basfijneman](https://gi
 We automate the boring parts. The GCP setup clicks, the configuration loops, the browser handholding — so you can stay in flow and ship what actually matters. Every plugin here is something we use ourselves.
 
 Want to work with us? We help teams build smarter workflows with AI-powered tooling, Shopify development, and creative engineering. Reach out at [info@studionope.nl](mailto:info@studionope.nl) or visit [studionope.nl](https://studionope.nl).
-
----
 
 ## License
 
