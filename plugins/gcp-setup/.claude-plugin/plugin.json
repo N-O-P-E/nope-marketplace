@@ -1,0 +1,8 @@
+{
+  "name": "gcp-setup",
+  "description": "Automates Google Cloud Console setup via browser automation. Handles project creation, API enabling, service accounts, IAM, billing, OAuth, Cloud Run deployment, and firewall config.",
+  "version": "1.0.0",
+  "author": {
+    "name": "N-O-P-E"
+  }
+}

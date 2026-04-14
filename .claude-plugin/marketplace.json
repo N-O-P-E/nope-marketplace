@@ -1,0 +1,18 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "nope-marketplace",
+  "description": "Claude Code plugins by N-O-P-E — browser automation, cloud setup, and developer tools",
+  "owner": {
+    "name": "N-O-P-E",
+    "email": "hello@n-o-p-e.com"
+  },
+  "plugins": [
+    {
+      "name": "gcp-setup",
+      "source": "./plugins/gcp-setup",
+      "description": "Automates Google Cloud Console setup via browser. Walks through project creation, API enabling, service accounts, IAM, billing, OAuth, Cloud Run, and firewall config — click by click. Auto-detects requirements from your codebase when invoked mid-feature.",
+      "version": "1.0.0",
+      "category": "development"
+    }
+  ]
+}
