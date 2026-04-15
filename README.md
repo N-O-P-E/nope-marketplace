@@ -75,6 +75,16 @@ Or via Claude Code:
 
 Chrome launches automatically on first use. If something goes wrong, see the [troubleshooting guide](https://github.com/ChromeDevTools/chrome-devtools-mcp/blob/main/docs/troubleshooting.md).
 
+## Star History
+
+<a href="https://www.star-history.com/?repos=N-O-P-E%2Fnope-marketplace&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=N-O-P-E/nope-marketplace&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=N-O-P-E/nope-marketplace&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=N-O-P-E/nope-marketplace&type=date&legend=top-left" />
+ </picture>
+</a>
+
 ## Security
 
 Found a vulnerability? See [SECURITY.md](SECURITY.md) for how to report it.
