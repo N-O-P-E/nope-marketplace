@@ -15,10 +15,27 @@ Want to work with us? We help teams build smarter workflows with AI-powered tool
 
 ## Plugins
 
-| Plugin | Description |
-|--------|-------------|
-| [**gcp-setup**](plugins/gcp-setup) | Drives Chrome through Google Cloud Console — project creation, APIs, service accounts, IAM, billing, OAuth, Cloud Run. Auto-detects what your project needs from the codebase. |
-| [**search-console**](plugins/search-console) | Audits Google Search Console via browser. Surfaces indexing issues, sitemap gaps, Core Web Vitals, and structured data warnings — then implements the fixes. |
+Both plugins drive a real Chrome browser through [chrome-devtools-mcp](https://github.com/ChromeDevTools/chrome-devtools-mcp) — they click, type, and screenshot the actual Google consoles so you don't have to. They never handle your credentials; you sign in once in Chrome and the plugins take it from there.
+
+### [gcp-setup](plugins/gcp-setup) — Google Cloud Console, automated
+
+Setting up a GCP project means clicking through a dozen consoles: create project, enable APIs, make service accounts, grant IAM roles, link billing, configure OAuth, deploy to Cloud Run. This plugin does all of that for you.
+
+- **Auto-detects what you need** — Scans your codebase (dependencies, config, env vars, CI files) to figure out which GCP services your project requires. Only asks about what it can't determine itself.
+- **Plans before acting** — Presents every step upfront, flags which ones need manual input (sign-in, billing, 2FA), then drives Chrome through the console step by step.
+- **Writes a summary** — Drops a `.gcp-setup.md` in your project with project ID, enabled APIs, service account emails, and follow-up notes. Future runs read this to avoid duplicate work.
+
+Good for: spinning up a new project from scratch, adding Cloud Run + Secret Manager to an existing app, creating CI/CD service accounts with GitHub Actions keys, or anything else that normally involves tab-switching between six GCP pages.
+
+### [search-console](plugins/search-console) — GSC audits and fixes
+
+Reads every report in Google Search Console that actually matters, returns a prioritised fix list, and helps you implement fixes for common structured data issues on any stack.
+
+- **Full audit** — Walks through Indexing, Sitemaps, Shopping, Core Web Vitals, and Security. Drills into each issue to get the exact affected URLs, not just counts.
+- **Prioritised report** — P0 → P3 list with root causes, fixes, and verification steps. Manual actions and security issues always surface as P0.
+- **Structured data fixes** — When GSC flags missing fields like `priceValidUntil`, `aggregateRating`, or `availability`, finds where your JSON-LD is emitted (CMS template, framework component, SEO plugin, custom SSR), adds the fields, and verifies with the Rich Results Test before triggering GSC validation.
+
+Good for: diagnosing why pages aren't ranking, catching sitemap/indexing gaps before they hurt traffic, fixing merchant listing errors, or just understanding what's actually happening in GSC without clicking through 15 reports.
 
 ## Install
 

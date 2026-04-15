@@ -1,6 +1,6 @@
 # search-console
 
-Audits Google Search Console via browser automation. Reads every report that matters, returns a prioritised fix list, and implements fixes for common structured data issues — including a complete Shopify implementation pattern.
+Audits Google Search Console via browser automation. Reads every report that matters, returns a prioritised fix list, and helps you implement fixes for common structured data issues on any stack.
 
 ## Install
 
@@ -50,20 +50,19 @@ P2 — Medium impact     (canonical misconfigs, thin content)
 P3 — Monitor           (intentional noindex, small counts)
 ```
 
-## Fixing product structured data on Shopify
+## Fixing structured data warnings
 
-When GSC flags missing fields like `priceValidUntil` or `aggregateRating`, the skill implements the fix directly in your Shopify theme:
+When GSC flags missing fields like `priceValidUntil`, `aggregateRating`, or `availability`, the skill walks a platform-agnostic fix loop:
 
-- Replaces Shopify's built-in `structured_data` filter with a single custom `snippets/structured-data.liquid` that handles all page types (`index`, `product`, `collection`, `article`, `blog`, `page`) from one `if/elsif` dispatcher in the `<head>`
-- Adds `priceValidUntil` (1 year rolling) to all product offers
-- Wires `aggregateRating` to Judge.me's native metafield (`judgeme.review_widget_data`) and the standard Shopify `reviews` namespace — appears automatically once reviews exist
-- Triggers GSC validation after deploying the fix
+- **Locate the emitter** — finds where JSON-LD is currently output (CMS template, framework component, SEO plugin, or custom SSR) and whether to extend or replace it
+- **Add the missing fields** — `priceValidUntil` (rolling), `availability`, `aggregateRating` (only when real reviews exist), merchant-level fields like `shippingDetails`
+- **Verify before claiming done** — view-source for duplicates, Rich Results Test on sample URLs, then trigger GSC validation so Google re-crawls
 
-After fixing, the only maintenance on Horizon theme updates is removing two built-in `structured_data` filter calls from sections — everything else lives outside Horizon's files.
+Platform-specific gotchas are flagged as they come up — Shopify's locked `structured_data` filter, WordPress plugins that emit their own graph, Next.js/Nuxt hydration pitfalls — but the core workflow works for any stack that outputs HTML.
 
 ## Troubleshooting
 
 - **GSC UI in Dutch** — The skill handles localised strings automatically (`Niet geïndexeerd`, `Pagina's`, etc.).
 - **"No items detected" in Rich Results Test** — Often a CDN cache hit. Test with a different URL on the same template, or wait a few minutes.
-- **Duplicate schemas after Shopify theme update** — Remove `{{ closest.product | structured_data }}` from `sections/product-information.liquid` and `{{ article | structured_data }}` from `sections/main-blog-post.liquid`.
+- **Duplicate schemas after a theme/plugin update** — Check view-source for multiple JSON-LD blocks of the same `@type`. Usually a built-in emitter got re-enabled alongside your custom one; disable whichever is redundant.
 - **Browser not responding** — See the [Chrome DevTools MCP troubleshooting guide](https://github.com/ChromeDevTools/chrome-devtools-mcp/blob/main/docs/troubleshooting.md).

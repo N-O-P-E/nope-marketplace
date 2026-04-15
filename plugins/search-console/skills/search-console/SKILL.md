@@ -123,10 +123,11 @@ https://search.google.com/search-console/sitemaps?resource_id=DOMAIN
 - Discovered pages count per sitemap
 - Compare discovered pages in sitemap vs total indexed pages — a big gap means the sitemap is incomplete
 
-**Common sitemap issues for Shopify stores:**
-- Only `sitemap.xml` submitted but not the sub-sitemaps (`sitemap_products_1.xml`, `sitemap_collections_1.xml`, `sitemap_pages_1.xml`, `sitemap_blogs_1.xml`)
+**Common sitemap issues:**
+- Only the root sitemap (`sitemap.xml`) submitted but sub-sitemaps (`sitemap_products.xml`, `sitemap_pages.xml`, etc.) aren't being discovered
 - Sitemap contains redirected or 404 URLs
 - Sitemap was never submitted (only auto-discovered)
+- Stale sitemap — old URLs that were changed or removed still listed
 
 `take_screenshot`.
 
@@ -159,13 +160,15 @@ https://search.google.com/search-console/r/product?resource_id=DOMAIN
 
 Capture: valid count, invalid count, any error types listed.
 
-**"Weergave van item verbeteren" / "Improve item display" warnings** are non-critical but worth fixing — items are valid but missing recommended fields. Common ones on Shopify:
+**"Weergave van item verbeteren" / "Improve item display" warnings** are non-critical but worth fixing — items are valid but missing recommended fields. Common ones:
 
 | Missing field | Meaning | Fix |
 |---|---|---|
-| `priceValidUntil` (in `hasVariant.offers`) | No offer expiry date on product variants | Add to structured data snippet |
-| `aggregateRating` | No review score on product | Wire to reviews app metafields |
-| `review` | No individual reviews | Wire to reviews app |
+| `priceValidUntil` (in `offers` / `hasVariant.offers`) | No offer expiry date | Add to product structured data |
+| `aggregateRating` | No review score on product | Wire to your reviews source |
+| `review` | No individual reviews | Wire to your reviews source |
+| `availability` | Missing in-stock / out-of-stock signal | Add to each `offer` |
+| `shippingDetails` / `hasMerchantReturnPolicy` | Missing merchant info | Add once at template level |
 
 **To see which URLs are affected:** click the warning row in the table — it drills into a list of exact URLs and item names. Always check this before assuming all products are affected (often just 2–5 pages).
 
@@ -267,143 +270,66 @@ Base URL: `https://search.google.com`
 
 ---
 
-## Shopify-Specific Fixes
+## Fixing Structured Data Warnings
 
-For Shopify stores, these are the most common issues and fixes:
+When GSC flags missing fields, the fix is always the same shape regardless of platform: locate where the JSON-LD is emitted, add or correct the field, verify.
 
-**Canonical tag problems**
-- Shopify automatically adds canonical tags pointing to the product's main URL
-- Variant URLs (`?variant=123`) should canonicalise to the base product URL
-- Collection-scoped product URLs (`/collections/xxx/products/yyy`) should canonicalise to `/products/yyy`
-- Check the theme's `meta-tags.liquid` snippet — if a `{{ canonical_url }}` is not being output correctly, all pages are affected
+### 1. Find where structured data is emitted
 
-**Incomplete sitemap**
-- Shopify's `/sitemap.xml` is an index file linking to sub-sitemaps
-- Submit `sitemap.xml` to GSC — it will auto-discover `sitemap_products_1.xml`, `sitemap_collections_1.xml`, etc.
-- Shopify excludes pages with `noindex` from the sitemap automatically
+Structured data lives in a `<script type="application/ld+json">` block. Depending on the stack, it may come from:
 
-**404 pages**
-- Use the Shopify Admin → Online Store → Navigation → URL Redirects to add 301s
-- Or add redirects programmatically via the Admin API
+- **CMS / theme layer** — a template, partial, or snippet that wraps product/article/page data (Shopify Liquid, WordPress PHP, Hugo/Jekyll templates, etc.)
+- **Framework** — a component or meta-handler in Next.js, Nuxt, Remix, Astro, SvelteKit
+- **Plugin or app** — an SEO plugin (Yoast, Rank Math) or platform built-in (Shopify's `structured_data` filter, WooCommerce schema, Magento's SD module)
+- **Custom backend** — SSR output assembled in the server
 
-**Redirect pages in index**
-- Any URL in the sitemap that now redirects needs to be removed or the sitemap regenerated
-- Old collection/product URLs that were changed are common culprits
+Fetch a product/article URL and grep for `application/ld+json` to confirm the current output before touching anything. If multiple blocks exist, note all of them — duplicates cause validation conflicts.
 
-**Noindex on important pages**
-- Shopify adds `noindex` to search results pages, account pages, cart, checkout — this is correct
-- If collection or product pages are noindexed, check: theme settings → search engine indexing, and the page's SEO settings in Shopify Admin
+### 2. Choose your insertion point
 
----
+Decide whether to **extend** the existing block or **replace** it.
 
-## Fixing Product Snippet Warnings on Shopify (Structured Data)
+- Extend when the emitter is under your control (custom template, your own component) — just add the missing fields.
+- Replace when the emitter is a black-box filter/plugin that can't be extended. Disable or remove it, then render your own JSON-LD block at template level.
 
-When GSC flags missing fields like `priceValidUntil`, `aggregateRating`, or `review`, the fix is to replace Shopify's built-in `structured_data` filter with a custom snippet you control.
+Centralise where possible: one snippet / component that dispatches by page type (`home`, `product`, `collection/category`, `article/post`, `page`) is easier to maintain than schema scattered across templates.
 
-### How Shopify outputs product structured data by default
+### 3. Add the commonly missing fields
 
-Shopify themes (e.g. Horizon) use the built-in Liquid filter in `sections/product-information.liquid`:
-```liquid
-<script type="application/ld+json">
-  {{ closest.product | structured_data }}
-</script>
+**`priceValidUntil`** — typically one year out, rolling. Expose a date variable in the template and inject it into every `offer`:
+
+```json
+"priceValidUntil": "2027-12-31"
 ```
 
-This outputs a valid `ProductGroup` schema but omits recommended fields. You can't extend it — you have to replace it.
+**`availability`** — map to schema.org values:
 
-### The fix: one snippet in the `<head>` for all page types
-
-Create `snippets/structured-data.liquid` and render it from `layout/theme.liquid`:
-
-```liquid
-{%- render 'meta-tags' -%}
-{%- render 'structured-data' -%}   {%- comment -%} ← add this line {%- endcomment -%}
+```json
+"availability": "https://schema.org/InStock"
 ```
+(or `OutOfStock`, `PreOrder`, `Discontinued`)
 
-The snippet uses `if/elsif` on `request.page_type` to output the right schema per page:
+**`aggregateRating`** — only emit when real reviews exist. Pull from whatever reviews source the project uses (CMS metafield, reviews API, database column). Skip the field entirely when count is 0 — empty ratings are a validation error.
 
-```liquid
-{%- if request.page_type == 'index' -%}
-  {%- comment -%} WebSite + SearchAction {%- endcomment -%}
-{%- elsif request.page_type == 'product' -%}
-  {%- comment -%} ProductGroup with priceValidUntil + aggregateRating {%- endcomment -%}
-{%- elsif request.page_type == 'collection' or request.page_type == 'list-collections' -%}
-  {%- comment -%} ItemList {%- endcomment -%}
-{%- elsif request.page_type == 'article' -%}
-  {%- comment -%} BlogPosting {%- endcomment -%}
-{%- elsif request.page_type == 'blog' -%}
-  {%- comment -%} Blog {%- endcomment -%}
-{%- elsif request.page_type == 'page' -%}
-  {%- comment -%} WebPage / ContactPage / AboutPage {%- endcomment -%}
-{%- endif -%}
-```
-
-Then remove `{{ closest.product | structured_data }}` from `sections/product-information.liquid` and `{{ article | structured_data }}` from `sections/main-blog-post.liquid`.
-
-### Adding `priceValidUntil`
-
-In the product branch, generate a date 1 year out:
-
-```liquid
-{%- assign price_valid_until = 'now' | date: '%Y' | plus: 1 | append: '-12-31' -%}
-```
-
-Add to each offer in the `hasVariant` loop:
-```liquid
-"priceValidUntil": {{ price_valid_until | json }},
-```
-
-Price formatting without currency symbol quirks:
-```liquid
-"price": "{{ variant.price | divided_by: 100 }}.{{ variant.price | modulo: 100 | prepend: '00' | slice: -2, 2 }}"
-```
-
-### Adding `aggregateRating` (requires reviews app)
-
-`aggregateRating` only makes sense when there are real reviews. Wire it conditionally to two sources:
-
-```liquid
-{%- liquid
-  assign rating_value = nil
-  assign rating_count = 0
-
-  # Source 1: standard Shopify reviews namespace (Judge.me, Loox, Okendo when sync enabled)
-  if product.metafields.reviews.rating != blank
-    assign rating_value = product.metafields.reviews.rating.value.rating
-    assign rating_count = product.metafields.reviews.rating_count.value | default: 0
-
-  # Source 2: Judge.me native metafield (type: json, always written when Judge.me is installed)
-  elsif product.metafields.judgeme.review_widget_data != blank
-    assign jdgm = product.metafields.judgeme.review_widget_data.value
-    assign rating_count = jdgm.number_of_reviews | default: 0
-    if rating_count > 0
-      assign rating_value = jdgm.average_rating | times: 1.0
-    endif
-  endif
--%}
-
-{%- if rating_value != nil and rating_count > 0 -%}
-,"aggregateRating": {
+```json
+"aggregateRating": {
   "@type": "AggregateRating",
-  "ratingValue": {{ rating_value }},
-  "reviewCount": {{ rating_count }}
+  "ratingValue": 4.7,
+  "reviewCount": 128
 }
-{%- endif -%}
 ```
 
-**Judge.me note:** Judge.me writes to `judgeme.review_widget_data` (type: `json`) automatically. To also write to the standard `reviews` namespace, enable it in Judge.me → Settings → Integrations → Shopify Product Ratings.
+**`shippingDetails` / `hasMerchantReturnPolicy`** — merchant-level fields. Usually added once at template level, not per-product, unless policies differ by SKU.
 
-### Important: Shopify section scope vs layout scope
+### 4. Verify the fix
 
-Variables assigned in `layout/theme.liquid` are **NOT accessible in sections** rendered via `{{ content_for_layout }}`. Sections run in an isolated scope. This means you cannot use a Liquid flag set in `theme.liquid` to suppress built-in structured data in a section. The only reliable fix is to **remove** the built-in filter calls from the sections entirely.
+Three checks, in this order:
 
-### On Horizon theme updates
+1. **View-source the page.** Confirm exactly one JSON-LD block per `@type`. Duplicates (two `Product` blocks, two `BlogPosting` blocks) are the #1 cause of GSC flagging "conflicting" schema.
+2. **Run the [Rich Results Test](https://search.google.com/test/rich-results)** on a sample URL from each template type. It parses schema the way Google does and reports missing fields immediately.
+3. **Trigger GSC validation.** In the GSC warning row, click "Oplossing valideren" / "Validate Fix". Google will re-crawl the affected URLs and report back within a few days.
 
-`layout/theme.liquid` and `snippets/structured-data.liquid` are not Horizon-owned files — theme updates never touch them. The only post-update task is removing the built-in `structured_data` calls from the two updated sections if Horizon adds them back. Two lines, two deletes.
-
-### Verifying the fix
-
-Check that each page type outputs exactly one schema (no duplicates):
+Quick duplicate check from the terminal:
 
 ```python
 import urllib.request, re, json
@@ -414,14 +340,14 @@ def check(url):
     return [json.loads(b).get('@type') for b in blocks]
 ```
 
-Expected output per page type:
-- Homepage: `['WebSite', 'Organization']`
-- Product: `['ProductGroup', 'Organization']`
-- Collection: `['ItemList', 'Organization']`
-- Article: `['BlogPosting', 'Organization']`
-- Contact page: `['ContactPage', 'Organization']`
+Each page type should output exactly the schemas it needs (e.g. `['WebSite', 'Organization']` on homepage, `['Product']` or `['ProductGroup']` on a PDP). Unexpected duplicates mean an old emitter is still active alongside the new one.
 
-`Organization` is always present — injected by Shopify via `content_for_header`. Any duplicate `@type` values indicate a built-in filter is still active alongside the custom snippet.
+### Platform-specific gotchas worth knowing
+
+- **Shopify** — the built-in `| structured_data` Liquid filter cannot be extended. Replace it by rendering a custom snippet from `layout/theme.liquid` and removing the filter calls from the theme sections. Variables assigned in `theme.liquid` are NOT accessible inside sections (isolated scope).
+- **WordPress** — Yoast and Rank Math both emit their own graph. Disable the one you're not using, or use their filter hooks (`wpseo_schema_*`) to extend rather than duplicate.
+- **Next.js / Remix / Nuxt** — emit JSON-LD via a `<script>` element in the page component or layout. Beware hydration: use `dangerouslySetInnerHTML` (or framework equivalent) and render server-side only.
+- **Headless builds** — if the CMS ships schema AND the frontend also renders it, you'll get duplicates. Pick one source of truth.
 
 ---
 
