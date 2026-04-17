@@ -15,7 +15,7 @@ Want to work with us? We help teams build smarter workflows with AI-powered tool
 
 ## Plugins
 
-Both plugins drive a real Chrome browser through [chrome-devtools-mcp](https://github.com/ChromeDevTools/chrome-devtools-mcp) — they click, type, and screenshot the actual Google consoles so you don't have to. They never handle your credentials; you sign in once in Chrome and the plugins take it from there.
+All plugins drive a real Chrome browser through [chrome-devtools-mcp](https://github.com/ChromeDevTools/chrome-devtools-mcp) — they click, type, and screenshot the actual dashboards so you don't have to. They never handle your credentials; you sign in once in Chrome and the plugins take it from there.
 
 ### [gcp-setup](plugins/gcp-setup) — Google Cloud Console, automated
 
@@ -37,6 +37,17 @@ Reads every report in Google Search Console that actually matters, returns a pri
 
 Good for: diagnosing why pages aren't ranking, catching sitemap/indexing gaps before they hurt traffic, fixing merchant listing errors, or just understanding what's actually happening in GSC without clicking through 15 reports.
 
+### [cloudflare-connect](plugins/cloudflare-connect) — Subdomains wired to Railway, Vercel, and more
+
+Pointing a subdomain at a hosting platform means jumping between three tabs and copy-pasting CNAME targets. This plugin drives both sides — the platform's custom-domain form AND the Cloudflare DNS editor — end-to-end.
+
+- **Platform-first flow** — Opens Railway (or Vercel) first, attaches the subdomain, reads the CNAME target the platform reveals. Then opens Cloudflare and adds the DNS record with the captured target. No copy-paste.
+- **TXT verification handled** — When Vercel asks for a `_vercel` TXT challenge, the plugin adds it automatically, waits for verification, then continues with the CNAME.
+- **Safe defaults** — Defaults to DNS-only (grey cloud) because Railway and Vercel issue their own Let's Encrypt certs. Won't silently overwrite existing DNS records — always prompts.
+- **Writes a summary** — Drops a `.cloudflare-setup.md` in your project with links to both dashboards and the live URL.
+
+Good for: wiring a new subdomain to a Railway service, attaching a custom domain to a Vercel project, or any time you'd otherwise be alt-tabbing between Cloudflare and a deploy dashboard with a CNAME in your clipboard.
+
 ## Install
 
 Add the marketplace to Claude Code:
@@ -50,11 +61,12 @@ Install a plugin:
 ```
 /plugin install gcp-setup@nope-marketplace
 /plugin install search-console@nope-marketplace
+/plugin install cloudflare-connect@nope-marketplace
 ```
 
 ## Chrome DevTools MCP
 
-Both plugins drive Chrome via [chrome-devtools-mcp](https://github.com/ChromeDevTools/chrome-devtools-mcp). Set it up once:
+All plugins drive Chrome via [chrome-devtools-mcp](https://github.com/ChromeDevTools/chrome-devtools-mcp). Set it up once:
 
 **Add to `~/.claude/settings.json`:**
 ```json
