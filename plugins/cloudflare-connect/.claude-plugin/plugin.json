@@ -1,0 +1,9 @@
+{
+  "name": "cloudflare-connect",
+  "description": "Adds a subdomain to a Cloudflare-managed zone and wires it to a hosting platform (Railway, Vercel, more) via browser automation. Handles both sides end-to-end: platform-side custom domain attach AND Cloudflare DNS record creation. No CLI or API token required.",
+  "version": "1.0.0",
+  "author": {
+    "name": "N-O-P-E"
+  },
+  "tags": ["browser-automation", "cloudflare", "dns", "railway", "vercel", "subdomains"]
+}

@@ -22,6 +22,14 @@
       "version": "1.0.0",
       "category": "development",
       "tags": ["browser-automation", "seo", "google", "structured-data"]
+    },
+    {
+      "name": "cloudflare-connect",
+      "source": "./plugins/cloudflare-connect",
+      "description": "Adds a subdomain to a Cloudflare-managed zone and wires it to a hosting platform (Railway, Vercel) via browser automation. Handles both sides end-to-end: platform-side custom domain attach AND Cloudflare DNS record creation. Defaults to DNS-only proxy for Let's Encrypt compatibility. No CLI or API token required.",
+      "version": "1.0.0",
+      "category": "development",
+      "tags": ["browser-automation", "cloudflare", "dns", "railway", "vercel", "subdomains"]
     }
   ]
 }
